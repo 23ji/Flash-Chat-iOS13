@@ -6,15 +6,25 @@
 //  Copyright © 2019 Angela Yu. All rights reserved.
 //
 
+import FirebaseAuth
+
 import UIKit
 
 class LoginViewController: UIViewController {
-
-    @IBOutlet weak var emailTextfield: UITextField!
-    @IBOutlet weak var passwordTextfield: UITextField!
+  
+  @IBOutlet weak var emailTextfield: UITextField!
+  @IBOutlet weak var passwordTextfield: UITextField!
+  
+  
+  @IBAction func loginPressed(_ sender: UIButton) {
+    guard let email = self.emailTextfield.text else { return }
+    guard let password = self.passwordTextfield.text else { return }
     
-
-    @IBAction func loginPressed(_ sender: UIButton) {
+    guard email.isEmpty == false else { return }
+    
+    Auth.auth().signIn(withEmail: email, password: password) { result, error in
+      guard error == nil else { return }
+      self.performSegue(withIdentifier: "LoginToChat", sender: nil)
     }
-    
+  }
 }
