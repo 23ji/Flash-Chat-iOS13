@@ -32,6 +32,7 @@ class ChatViewController: UIViewController {
     self.navigationItem.hidesBackButton = true
     
     self.tableView.dataSource = self
+    self.tableView.delegate = self
     self.tableView.register(
       UINib(nibName: K.cellNibName, bundle: nil),
       forCellReuseIdentifier: K.cellIdentifier
@@ -57,7 +58,8 @@ class ChatViewController: UIViewController {
     
     self.db.collection(K.FStore.collectionName).addDocument(data: [
       K.FStore.senderField: messageSender,
-      K.FStore.bodyField: messageBody
+      K.FStore.bodyField: messageBody,
+      K.FStore.dateField: Date().timeIntervalSince1970
     ]) { error in
       guard let error else { return }
       print(error)
@@ -70,7 +72,11 @@ class ChatViewController: UIViewController {
   }
   
   private func loadMessages () {
-    self.db.collection(K.FStore.collectionName).getDocuments { querySnapShot, error in
+    self.db.collection(K.FStore.collectionName).order(by: K.FStore.dateField).addSnapshotListener { [weak self] querySnapShot, error in
+      //guard let self = self else { return }
+      
+      self?.messages = []
+      
       if let snapShotDocument = querySnapShot?.documents {
         for doc in snapShotDocument {
           let data = doc.data()
@@ -78,11 +84,11 @@ class ChatViewController: UIViewController {
           if let sender = data[K.FStore.senderField] as? String,
              let body = data[K.FStore.bodyField] as? String {
             let message = Message(sender: sender, body: body)
-            self.messages.append(message)
+            self?.messages.append(message)
           }
         }
         DispatchQueue.main.async {
-          self.tableView.reloadData()
+          self?.tableView.reloadData()
         }
       }
     }
@@ -102,7 +108,35 @@ extension ChatViewController: UITableViewDataSource {
     //타입 캐스팅
     guard let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath) as? MessageCell else { return UITableViewCell() }
     //cell.textLabel?.text = "hi"
+    guard let email = Auth.auth().currentUser?.email else { return UITableViewCell() }
+    
+    //prepareForReuse에서
+//    cell.leftImageView.isHidden = false
+//    cell.rightImageView.isHidden = false
+    
+    if self.messages[indexPath.row].sender == email {
+      cell.leftImageView.isHidden = true
+      cell.messageBubble.backgroundColor = UIColor(named: "BrandPurple")
+      cell.label.textColor = UIColor(named: "BrandLightPurple")
+    } else {
+      cell.rightImageView.isHidden = true
+      cell.messageBubble.backgroundColor = UIColor(named: "BrandLightPurple")
+      cell.label.textColor = UIColor(named: "BrandPurple")
+    }
     cell.label.text = self.messages[indexPath.row].body
     return cell
+  }
+}
+
+extension ChatViewController: UITableViewDelegate {
+  func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    //디버깅 검색 팁
+    print("ChatViewController didSelectRowAt", indexPath)
+  }
+}
+
+extension ChatViewController: UIScrollViewDelegate {
+  func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    //print("scroll")
   }
 }
