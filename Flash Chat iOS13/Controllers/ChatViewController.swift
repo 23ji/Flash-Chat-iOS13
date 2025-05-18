@@ -60,8 +60,10 @@ class ChatViewController: UIViewController {
       K.FStore.senderField: messageSender,
       K.FStore.bodyField: messageBody,
       K.FStore.dateField: Date().timeIntervalSince1970
-    ]) { error in
-      guard let error else { return }
+    ]) { [weak self] error in
+      if error == nil {
+        self?.messageTextfield.text = ""
+      }
       print(error)
     }
     
@@ -72,10 +74,11 @@ class ChatViewController: UIViewController {
   }
   
   private func loadMessages () {
+    
     self.db.collection(K.FStore.collectionName).order(by: K.FStore.dateField).addSnapshotListener { [weak self] querySnapShot, error in
-      //guard let self = self else { return }
+      guard let self else { return }
       
-      self?.messages = []
+      self.messages = []
       
       if let snapShotDocument = querySnapShot?.documents {
         for doc in snapShotDocument {
@@ -84,11 +87,17 @@ class ChatViewController: UIViewController {
           if let sender = data[K.FStore.senderField] as? String,
              let body = data[K.FStore.bodyField] as? String {
             let message = Message(sender: sender, body: body)
-            self?.messages.append(message)
+            self.messages.append(message)
           }
         }
         DispatchQueue.main.async {
-          self?.tableView.reloadData()
+          self.tableView.reloadData()
+          //스크롤 위로 올리기
+          self.tableView.scrollToRow(
+            at: .init(row: self.messages.count - 1, section: 0),
+            at: .top,
+            animated: true
+          )
         }
       }
     }
@@ -111,18 +120,40 @@ extension ChatViewController: UITableViewDataSource {
     guard let email = Auth.auth().currentUser?.email else { return UITableViewCell() }
     
     //prepareForReuse에서
-//    cell.leftImageView.isHidden = false
-//    cell.rightImageView.isHidden = false
+    //    cell.leftImageView.isHidden = false
+    //    cell.rightImageView.isHidden = false
     
-    if self.messages[indexPath.row].sender == email {
-      cell.leftImageView.isHidden = true
-      cell.messageBubble.backgroundColor = UIColor(named: "BrandPurple")
-      cell.label.textColor = UIColor(named: "BrandLightPurple")
-    } else {
-      cell.rightImageView.isHidden = true
-      cell.messageBubble.backgroundColor = UIColor(named: "BrandLightPurple")
-      cell.label.textColor = UIColor(named: "BrandPurple")
-    }
+    //    if self.messages[indexPath.row].sender == email {
+    //      cell.leftImageView.isHidden = true
+    //      cell.messageBubble.backgroundColor = UIColor(named: "BrandPurple")
+    //      cell.label.textColor = UIColor(named: "BrandLightPurple")
+    //    } else {
+    //      cell.rightImageView.isHidden = true
+    //      cell.messageBubble.backgroundColor = UIColor(named: "BrandLightPurple")
+    //      cell.label.textColor = UIColor(named: "BrandPurple")
+    //    }
+    
+    // 메세지 보낸 사람 == 현재 로그인 한 사람  인지
+    // 메세지 보낸 사람 == 현재 로그인 한 사람이면 왼쪽 이미지 가리기
+    //cell.leftImageView.isHidden = (self.messages[indexPath.row].sender == email ? true : false)
+    //    cell.leftImageView.isHidden = (self.messages[indexPath.row].sender == email)
+    //      ? true
+    //      : false
+    
+    // 삼항 연산자 사용
+    cell.leftImageView.isHidden = (self.messages[indexPath.row].sender == email)
+    cell.rightImageView.isHidden = (self.messages[indexPath.row].sender != email)
+    
+    cell.messageBubble.backgroundColor = (self.messages[indexPath.row].sender == email)
+      ? UIColor(named: "BrandPurple")
+      : UIColor(named: "BrandLightPurple")
+    
+    cell.label.textColor = (self.messages[indexPath.row].sender == email)
+      ? UIColor(named: "BrandLightPurple")
+      : UIColor(named: "BrandPurple")
+    
+    
+    
     cell.label.text = self.messages[indexPath.row].body
     return cell
   }

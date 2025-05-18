@@ -17,7 +17,7 @@ class WelcomeViewController: UIViewController {
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    
+    self.navigationController?.setNavigationBarHidden(true, animated: false)
     self.titleLabel.text = "⚡️Flash Chat"
 //    self.titleLabel.text = ""
 //    
@@ -35,6 +35,11 @@ class WelcomeViewController: UIViewController {
 //      }
 //      charIndex += 1
 //    }
+  }
+  
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    self.navigationController?.setNavigationBarHidden(false, animated: false)
   }
   
   
